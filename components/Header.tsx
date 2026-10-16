@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { Sun, Moon, Pencil, Check, LogIn, LogOut, User, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, Pencil, Check, LogIn, LogOut, User, ShieldCheck, Search, Star } from 'lucide-react';
 import SuggestModal from './SuggestModal';
+import SearchModal, { openSearch } from './SearchModal';
 import BrandMark from './BrandMark';
 import { SITE } from '../lib/config';
 import { useApp } from './Provider';
@@ -34,7 +35,8 @@ export default function Header() {
   };
 
   const m = /^\/s\/([^/]+)(?:\/(rules|commands|promo))?/.exec(path);
-  const crumbs = path === '/login' ? <><Link href="/">Главная</Link> / Вход</>
+  const crumbs = path === '/favorites' ? <><Link href="/">Главная</Link> / Избранное</>
+    : path === '/login' ? <><Link href="/">Главная</Link> / Вход</>
     : m ? <><Link href="/servers">Серверы</Link> / <Link href={`/s/${m[1]}`}>{serverName || m[1]}</Link>{m[2] && <> / {SEC[m[2]]}</>}</> : null;
 
   return <>
@@ -42,7 +44,9 @@ export default function Header() {
       <Link className="logo" href="/"><BrandMark /><span>{SITE.a}<b>{SITE.b}</b></span></Link>
       {crumbs && <div className="crumbs">{crumbs}</div>}
       <Link className="navlink" href="/servers">Серверы</Link>
+      <Link className="navlink" href="/favorites"><Star size={14} style={{ verticalAlign: '-2px' }} /> Избранное</Link>
       <div className="sp" />
+      <button className="btn" onClick={openSearch} aria-label="Поиск" title="Поиск (Ctrl+K)"><Search size={16} /><span className="hide-sm">Поиск</span><kbd className="kbd">Ctrl K</kbd></button>
       <button className="btn icon" onClick={toggleTheme} aria-label="Сменить тему" title="Сменить тему">
         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
@@ -66,5 +70,6 @@ export default function Header() {
       </div>
     </div>}
   <SuggestModal />
+  <SearchModal />
   </>;
 }

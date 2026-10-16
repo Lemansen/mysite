@@ -4,6 +4,7 @@ import { CSSProperties } from 'react';
 import { ScrollText, TerminalSquare, Gift, ArrowRight } from 'lucide-react';
 import { useApp } from '../../../components/Provider';
 import ServerGuard from '../../../components/ServerGuard';
+import QuickAccess from '../../../components/QuickAccess';
 import { isExpired } from '../../../lib/store';
 
 function Inner() {
@@ -32,6 +33,7 @@ function Inner() {
         </Link>
       ))}
     </div>
+    {slug && <QuickAccess server={slug} />}
   </div>;
 }
 export default function Page() { return <ServerGuard><Inner /></ServerGuard>; }

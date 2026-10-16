@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ScrollText, TerminalSquare, Gift, UserPlus, LogIn, ArrowRight, ShieldCheck, Users } from 'lucide-react';
 import { useApp } from '../components/Provider';
 import HomePref from '../components/HomePref';
+import QuickAccess from '../components/QuickAccess';
 import Skeleton from '../components/Skeleton';
 import { SITE } from '../lib/config';
 import { LEVELS } from '../lib/roles';
@@ -51,6 +52,8 @@ export default function Landing() {
       </div>
       {!user && remote && <p className="note">Читать можно без регистрации. Аккаунт нужен, только чтобы предлагать правки и получать уровни.</p>}
     </section>
+
+    <QuickAccess />
 
     <div className="stats">
       <div className="stat"><b>{servers.length}</b><span className="note">{servers.length === 1 ? 'сервер' : 'серверов'} в справочнике</span></div>

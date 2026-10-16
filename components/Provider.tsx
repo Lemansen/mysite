@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { Data, KEY, seed } from '../lib/store';
 import { supabase } from '../lib/supabase';
 import { SITE } from '../lib/config';
+import { setFavsUser } from '../lib/favs';
 
 type Status = 'idle' | 'saving' | 'saved' | 'error';
 export type Profile = { id: string; username: string; public_id?: number; home_pref?: 'welcome' | 'servers' | 'last'; bio?: string | null; avatar_hue?: number; avatar_emoji?: string | null; username_changed_at?: string | null; role: 'user' | 'helper' | 'moderator' | 'admin'; banned_until: string | null; ban_permanent: boolean; ban_reason: string | null; appeal_deadline: string | null; appeal_status: 'none' | 'pending' | 'approved' | 'rejected'; appeal_text: string | null; second_chance: boolean; created_at: string };
@@ -57,6 +58,7 @@ export default function Provider({ children }: { children: ReactNode }) {
     setProfile(p as Profile); setAuthReady(true);
   }, [user]);
   useEffect(() => { refreshProfile(); }, [refreshProfile]);
+  useEffect(() => { void setFavsUser(user?.id ?? null); }, [user?.id]);
   const isStaff = profile?.role === 'moderator' || profile?.role === 'admin';
   const isAdmin = profile?.role === 'admin';
   const isHelper = isStaff || profile?.role === 'helper';

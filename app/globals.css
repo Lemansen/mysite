@@ -202,3 +202,54 @@ details.card p{margin-top:8px}
   .avatar{width:68px;height:68px;font-size:28px}
 }
 @media(max-width:560px){.navlink{display:none}}
+
+/* поиск */
+.kbd{font:500 11px/1 ui-monospace,Consolas,monospace;padding:3px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);margin-left:4px}
+.searchbtn{display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;color:var(--muted);margin-bottom:12px}.searchbtn .kbd{margin-left:auto}
+.sm-back{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:flex-start;padding:max(env(safe-area-inset-top),8vh) 12px 12px}
+.sm{width:100%;max-width:680px;max-height:84vh;display:flex;flex-direction:column;background:var(--toast);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden}
+.sm-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted)}
+.sm-head input{flex:1;min-width:0;background:none;border:0;outline:none;font-size:16px;color:var(--text)}
+.sm-filters{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+.chipsep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer;font-size:13px}
+.chip.on{background:var(--glass);color:var(--text);border-color:var(--accent)}
+.sm-body{overflow-y:auto;flex:1;padding:6px;min-height:120px}
+.sm-msg{color:var(--muted);padding:28px 16px;text-align:center}
+.sm-hit{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:none;cursor:pointer}
+.sm-hit.on{background:var(--glass);border-color:var(--line)}
+.sm-t{display:block;font-weight:600}.sm-t.cmd{font-family:ui-monospace,Consolas,monospace;color:var(--accent2);font-size:14px}
+.sm-path{display:block;font-size:12px;color:var(--muted);margin:1px 0 3px}
+.sm-s{display:block;font-size:14px;color:var(--soft)}
+.sm-foot{padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.card.flash{animation:flash 3s ease-out}
+@keyframes flash{0%,35%{box-shadow:0 0 0 2px var(--accent2),0 0 24px var(--accent2)}100%{box-shadow:0 0 0 0 transparent}}
+.hide-sm{display:inline}
+@media(max-width:640px){.hide-sm,.kbd{display:none}.sm-back{padding-top:max(env(safe-area-inset-top),8px)}.sm{max-height:94vh}}
+
+/* Этап 2: избранное и быстрый доступ */
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip .cnt{margin-left:4px;font-size:12px;color:var(--muted)}
+.favbtn{position:absolute;top:10px;right:10px;z-index:1;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid transparent;background:none;color:var(--muted);cursor:pointer;transition:color .2s,background .2s,transform .1s;-webkit-tap-highlight-color:transparent}
+.favbtn:hover{color:var(--accent2);background:var(--glass)}.favbtn:active{transform:scale(.9)}
+.favbtn.on{color:var(--accent2)}
+.card.hasfav{padding-right:54px}
+.card.clickable.hasfav{padding-right:84px}
+.card.clickable .favbtn{right:40px}
+.card.promo.hasfav .favbtn{top:8px;right:8px}
+.qa{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}
+.qa-col h3{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.fav{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);background:var(--glass);border-radius:12px;transition:border-color .2s}
+.fav:hover{border-color:var(--accent)}
+.fav.pinned{border-left:3px solid var(--accent2)}
+.fav.gone{opacity:.6}
+.fav-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.fav-t{font-weight:600;overflow-wrap:anywhere}.fav-t.cmd{font-family:ui-monospace,Consolas,monospace;color:var(--accent2);font-size:14px}
+.fav-path{font-size:12px;color:var(--muted)}
+.fav-s{font-size:13px;color:var(--soft)}
+.fav-act{display:flex;gap:4px;flex:none}
+.usedrow{display:flex;align-items:center;gap:8px}.usedrow .fav{flex:1;min-width:0}
+.usedrow .cnt{color:var(--muted);font-size:13px;margin-bottom:8px}
+@media(max-width:1000px){.qa{grid-template-columns:1fr}}
+@media(max-width:800px){.card.hasfav{padding-right:50px}.card.clickable.hasfav{padding-right:78px}.card.clickable .favbtn{right:36px}.card.promo.hasfav .favbtn{top:6px;right:6px}}
+@media(pointer:coarse){.favbtn{width:44px;height:44px;top:6px;right:6px}.card.clickable .favbtn{right:34px}.fav-act .btn.icon{min-width:44px}}

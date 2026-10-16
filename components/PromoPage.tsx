@@ -3,25 +3,42 @@ import { useEffect, useState, CSSProperties } from 'react';
 import { Flame, Archive, Copy, Check, Clock } from 'lucide-react';
 import { useApp } from './Provider';
 import Skeleton from './Skeleton';
+import { useDeepLink } from '../lib/useDeepLink';
+import FavButton from './FavButton';
+import { buildDocs, Doc } from '../lib/search';
+import { bumpUsed, pushRecent, syncServer } from '../lib/favs';
 import { Promo, uid, iso, addDays, fmt, pl, isExpired, daysLeft, endOf } from '../lib/store';
 
 export default function PromoPage() {
-  const { data, edit, update, ready, copy } = useApp();
+  const { data, edit, update, ready, copy, slug, serverName } = useApp();
   const [now, setNow] = useState(() => Date.now());
   const [done, setDone] = useState('');
+  const link = useDeepLink(ready);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
+  const docOf = (p: Promo): Doc => ({ kind: 'promos', server: slug ?? '', serverName, folderId: '', folder: 'Промокоды', id: p.id, title: p.code, body: p.reward });
+
+  useEffect(() => {
+    if (!ready || !slug || data.rules.length + data.commands.length + data.promos.length === 0) return;
+    syncServer(slug, buildDocs(slug, serverName, data));
+  }, [ready, slug, serverName, data]);
+  useEffect(() => { if (ready && slug) pushRecent({ kind: 'promos', server: slug, serverName, folderId: '', folder: 'Промокоды' }); }, [ready, slug, serverName]);
+  useEffect(() => {
+    if (!ready || !slug || !link.i) return;
+    const p = data.promos.find(x => x.id === link.i); if (p) bumpUsed(docOf(p));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, link.i]);
   if (!ready) return <Skeleton />;
 
   const act = data.promos.filter(p => !isExpired(p, now)).sort((a, b) => b.added.localeCompare(a.added));
   const arc = data.promos.filter(p => isExpired(p, now)).sort((a, b) => b.until.localeCompare(a.until));
   const set = (id: string, patch: Partial<Promo>) => update(d => { Object.assign(d.promos.find(p => p.id === id)!, patch); });
-  const doCopy = async (p: Promo) => { if (await copy(p.code)) { setDone(p.id); setTimeout(() => setDone(''), 1600); } };
+  const doCopy = async (p: Promo) => { if (await copy(p.code)) { bumpUsed(docOf(p)); setDone(p.id); setTimeout(() => setDone(''), 1600); } };
 
   const card = (p: Promo, ix: number) => {
     const old = isExpired(p, now), d = daysLeft(p, now);
     const isNew = !old && now - new Date(p.added + 'T00:00:00').getTime() < 3 * 864e5;
     if (edit) return (
-      <div className={'card ' + (old ? 'old' : 'fresh')} key={p.id}>
+      <div id={'i-' + p.id} className={'card ' + (old ? 'old' : 'fresh') + (link.flash === p.id ? ' flash' : '')} key={p.id}>
         <input className="field" value={p.code} placeholder="Промокод" onChange={e => set(p.id, { code: e.target.value })} />
         <textarea className="field" value={p.reward} placeholder="Что даёт промокод" onChange={e => set(p.id, { reward: e.target.value })} />
         <div className="row">
@@ -42,7 +59,8 @@ export default function PromoPage() {
       tone = pct > 40 ? 'ok' : pct > 15 ? 'warn' : 'bad';
     }
     return (
-      <div className={'card promo ticket rise ' + (old ? 'old' : 'fresh')} key={p.id} style={{ '--i': Math.min(ix, 12) } as CSSProperties}>
+      <div id={'i-' + p.id} className={'card promo ticket hasfav rise ' + (old ? 'old' : 'fresh') + (link.flash === p.id ? ' flash' : '')} key={p.id} style={{ '--i': Math.min(ix, 12) } as CSSProperties}>
+        {slug && <FavButton doc={docOf(p)} />}
         <div>
           <div className="code">{p.code}
             {old && <span className="badge b-old">Закончился</span>}
