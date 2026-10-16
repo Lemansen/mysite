@@ -8,6 +8,7 @@ import { useDeepLink } from '../lib/useDeepLink';
 import { openSearch } from './SearchModal';
 import FavButton from './FavButton';
 import { buildDocs, Doc } from '../lib/search';
+import CommandsDirectory from './CommandsDirectory';
 import { bumpUsed, pushRecent, syncServer } from '../lib/favs';
 
 const META = { rules: { title: 'Правила', cmd: false }, commands: { title: 'Команды', cmd: true } } as const;
@@ -39,13 +40,14 @@ export default function Section({ k }: { k: 'rules' | 'commands' }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, link.i]);
   if (!ready) return <Skeleton />;
+  if (k === 'commands' && !edit) return <CommandsDirectory />;
 
   const S = META[k], list = data[k];
   const fi = Math.max(0, list.findIndex(x => x.id === cur));
   const f = list[fi];
   const docOf = (i: Item): Doc => ({ kind: k, server: slug ?? '', serverName, folderId: f.id, folder: f.name, id: i.id, title: i.t, body: i.b });
-  const setItem = (id: string, key: 't' | 'b', v: string) =>
-    update(d => { d[k].find(x => x.id === f.id)!.items.find(i => i.id === id)![key] = v; });
+  const setItem = (id: string, key: 't' | 'b' | 'name' | 'syntax' | 'example' | 'purpose', v: string) =>
+    update(d => { (d[k].find(x => x.id === f.id)!.items.find(i => i.id === id)! as Item)[key] = v; });
   const move = (ix: number, dir: number) =>
     update(d => { const a = d[k].find(x => x.id === f.id)!.items; const j = ix + dir; if (j >= 0 && j < a.length) [a[ix], a[j]] = [a[j], a[ix]]; });
 
@@ -61,8 +63,14 @@ export default function Section({ k }: { k: 'rules' | 'commands' }) {
   );
   const editor = (i: Item, ix: number) => (
     <div className="card cat" key={i.id} style={hue(fi)}>
-      <input className="field" value={i.t} placeholder={S.cmd ? 'Команда' : 'Название'} onChange={e => setItem(i.id, 't', e.target.value)} />
+      <input className="field" value={i.t} placeholder={S.cmd ? 'Команда / синтаксис' : 'Название'} onChange={e => setItem(i.id, 't', e.target.value)} />
       <textarea className="field" value={i.b} placeholder="Описание" onChange={e => setItem(i.id, 'b', e.target.value)} />
+      {S.cmd && <>
+        <input className="field" value={i.name ?? ''} placeholder="Название команды (необязательно)" onChange={e => setItem(i.id, 'name', e.target.value)} />
+        <input className="field" value={i.syntax ?? ''} placeholder="Синтаксис (если отличается)" onChange={e => setItem(i.id, 'syntax', e.target.value)} />
+        <input className="field" value={i.example ?? ''} placeholder="Пример использования" onChange={e => setItem(i.id, 'example', e.target.value)} />
+        <input className="field" value={i.purpose ?? ''} placeholder="Назначение / ключевые слова" onChange={e => setItem(i.id, 'purpose', e.target.value)} />
+      </>}
       <div className="row">
         <button className="btn sm" onClick={() => move(ix, -1)}>Выше</button>
         <button className="btn sm" onClick={() => move(ix, 1)}>Ниже</button>

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { Sun, Moon, Pencil, Check, LogIn, LogOut, User, ShieldCheck, Search, Star } from 'lucide-react';
+import { Sun, Moon, Pencil, Check, LogIn, LogOut, User, ShieldCheck, Search, Star, BookOpen, ShieldCheck as BackupIcon } from 'lucide-react';
 import SuggestModal from './SuggestModal';
 import SearchModal, { openSearch } from './SearchModal';
 import BrandMark from './BrandMark';
@@ -45,6 +45,8 @@ export default function Header() {
       {crumbs && <div className="crumbs">{crumbs}</div>}
       <Link className="navlink" href="/servers">Серверы</Link>
       <Link className="navlink" href="/favorites"><Star size={14} style={{ verticalAlign: '-2px' }} /> Избранное</Link>
+      <Link className="navlink" href="/knowledge"><BookOpen size={14} style={{ verticalAlign: '-2px' }} /> База знаний</Link>
+      <Link className="navlink" href="/backup"><BackupIcon size={14} style={{ verticalAlign: '-2px' }} /> Бэкап</Link>
       <div className="sp" />
       <button className="btn" onClick={openSearch} aria-label="Поиск" title="Поиск (Ctrl+K)"><Search size={16} /><span className="hide-sm">Поиск</span><kbd className="kbd">Ctrl K</kbd></button>
       <button className="btn icon" onClick={toggleTheme} aria-label="Сменить тему" title="Сменить тему">

@@ -1,4 +1,4 @@
-export type Item = { id: string; t: string; b: string };
+export type Item = { id: string; t: string; b: string; name?: string; syntax?: string; example?: string; purpose?: string };
 export type Folder = { id: string; name: string; icon: string; note: string; items: Item[] };
 export type Promo = { id: string; code: string; reward: string; added: string; until: string };
 export type Data = { rules: Folder[]; commands: Folder[]; promos: Promo[] };

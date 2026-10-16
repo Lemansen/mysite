@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, CSSProperties } from 'react';
-import { Flame, Archive, Copy, Check, Clock } from 'lucide-react';
+import { Flame, Archive, Copy, Check, Clock, Search, SlidersHorizontal } from 'lucide-react';
 import { useApp } from './Provider';
 import Skeleton from './Skeleton';
 import { useDeepLink } from '../lib/useDeepLink';
@@ -13,6 +13,9 @@ export default function PromoPage() {
   const { data, edit, update, ready, copy, slug, serverName } = useApp();
   const [now, setNow] = useState(() => Date.now());
   const [done, setDone] = useState('');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
+  const [sortBy, setSortBy] = useState<'smart' | 'ending' | 'newest'>('smart');
   const link = useDeepLink(ready);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
   const docOf = (p: Promo): Doc => ({ kind: 'promos', server: slug ?? '', serverName, folderId: '', folder: 'Промокоды', id: p.id, title: p.code, body: p.reward });
@@ -29,8 +32,22 @@ export default function PromoPage() {
   }, [ready, link.i]);
   if (!ready) return <Skeleton />;
 
-  const act = data.promos.filter(p => !isExpired(p, now)).sort((a, b) => b.added.localeCompare(a.added));
-  const arc = data.promos.filter(p => isExpired(p, now)).sort((a, b) => b.until.localeCompare(a.until));
+  const normalizedQuery = query.trim().toLocaleLowerCase('ru-RU');
+  const matches = (p: Promo) => !normalizedQuery || `${p.code} ${p.reward}`.toLocaleLowerCase('ru-RU').includes(normalizedQuery);
+  const sortPromos = (items: Promo[]) => [...items].sort((a, b) => {
+    if (sortBy === 'newest') return b.added.localeCompare(a.added);
+    if (sortBy === 'ending') {
+      if (!a.until) return 1; if (!b.until) return -1; return a.until.localeCompare(b.until);
+    }
+    const da = a.until ? daysLeft(a, now) : Number.MAX_SAFE_INTEGER;
+    const db = b.until ? daysLeft(b, now) : Number.MAX_SAFE_INTEGER;
+    if (da !== db) return da - db;
+    return b.added.localeCompare(a.added);
+  });
+  const act = sortPromos(data.promos.filter(p => !isExpired(p, now) && matches(p)));
+  const arc = sortPromos(data.promos.filter(p => isExpired(p, now) && matches(p)));
+  const shownAct = statusFilter === 'expired' ? [] : act;
+  const shownArc = statusFilter === 'active' ? [] : arc;
   const set = (id: string, patch: Partial<Promo>) => update(d => { Object.assign(d.promos.find(p => p.id === id)!, patch); });
   const doCopy = async (p: Promo) => { if (await copy(p.code)) { bumpUsed(docOf(p)); setDone(p.id); setTimeout(() => setDone(''), 1600); } };
 
@@ -89,9 +106,15 @@ export default function PromoPage() {
       <div><h1>Промокоды</h1><p className="note">Новые коды добавляются сверху. Когда срок истекает, код сам переезжает в архив.</p></div>
       {edit && <button className="btn primary" onClick={() => update(d => { d.promos.push({ id: uid(), code: 'НОВЫЙКОД', reward: '', added: iso(new Date()), until: addDays(7) }); })}>Добавить промокод</button>}
     </div>
-    <h2><Flame size={20} color="#ff8a3d" /> Актуальные <span className="badge b-new">{act.length}</span></h2>
-    {act.length ? act.map(card) : <div className="empty">Сейчас нет действующих промокодов.</div>}
-    <h2><Archive size={20} color="var(--muted)" /> Архив <span className="badge b-old">{arc.length}</span></h2>
-    {arc.length ? arc.map(card) : <div className="empty">Архив пока пуст.</div>}
+    <div className="promo-tools" aria-label="Поиск и фильтры промокодов">
+      <label className="promo-search"><Search size={18} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Найти по коду или награде…" aria-label="Поиск промокодов" />{query && <button className="btn sm" onClick={() => setQuery('')} aria-label="Очистить поиск">Сбросить</button>}</label>
+      <label className="promo-select"><SlidersHorizontal size={17} /><select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)} aria-label="Статус промокодов"><option value="all">Все промокоды</option><option value="active">Только актуальные</option><option value="expired">Только архив</option></select></label>
+      <label className="promo-select"><select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)} aria-label="Сортировка промокодов"><option value="smart">Умная сортировка</option><option value="ending">Сначала истекающие</option><option value="newest">Сначала новые</option></select></label>
+    </div>
+    <p className="note promo-result-count">Найдено: {shownAct.length + shownArc.length}. Умная сортировка поднимает промокоды, которые скоро закончатся.</p>
+    {statusFilter !== 'expired' && <><h2><Flame size={20} color="#ff8a3d" /> Актуальные <span className="badge b-new">{shownAct.length}</span></h2>
+    {shownAct.length ? shownAct.map(card) : <div className="empty">{normalizedQuery ? 'По запросу нет актуальных промокодов.' : 'Сейчас нет действующих промокодов.'}</div>}</>}
+    {statusFilter !== 'active' && <><h2><Archive size={20} color="var(--muted)" /> Архив <span className="badge b-old">{shownArc.length}</span></h2>
+    {shownArc.length ? shownArc.map(card) : <div className="empty">{normalizedQuery ? 'В архиве ничего не найдено.' : 'Архив пока пуст.'}</div>}</>}
   </div>;
 }

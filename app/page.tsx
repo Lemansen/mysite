@@ -2,18 +2,22 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ScrollText, TerminalSquare, Gift, UserPlus, LogIn, ArrowRight, ShieldCheck, Users } from 'lucide-react';
+import { ScrollText, TerminalSquare, Gift, UserPlus, LogIn, ArrowRight, ShieldCheck, Users, BookOpen } from 'lucide-react';
 import { useApp } from '../components/Provider';
 import HomePref from '../components/HomePref';
 import QuickAccess from '../components/QuickAccess';
 import Skeleton from '../components/Skeleton';
 import { SITE } from '../lib/config';
 import { LEVELS } from '../lib/roles';
+import HomePersonalize, { HOME_LAYOUT_KEY, DEFAULT_HOME_LAYOUT, type HomeLayout } from '../components/HomePersonalize';
 
 export default function Landing() {
   const r = useRouter();
   const { ready, authReady, user, profile, servers, remote } = useApp();
   const [go, setGo] = useState(false);
+  const [homeLayout, setHomeLayout] = useState<HomeLayout>(DEFAULT_HOME_LAYOUT);
+  useEffect(() => { try { const raw = localStorage.getItem(HOME_LAYOUT_KEY); if (raw) setHomeLayout({ ...DEFAULT_HOME_LAYOUT, ...JSON.parse(raw) }); } catch {} }, []);
+  const updateHomeLayout = (next: HomeLayout) => { setHomeLayout(next); try { localStorage.setItem(HOME_LAYOUT_KEY, JSON.stringify(next)); } catch {} };
 
   // Вход по обычной ссылке: при выбранной настройке сразу открываем сервер или список серверов
   useEffect(() => {
@@ -31,6 +35,7 @@ export default function Landing() {
     { Icon: ScrollText, t: 'Правила', d: 'Что можно и нельзя на вашем сервере, и какое за это наказание. Всё по папкам, с поиском.' },
     { Icon: TerminalSquare, t: 'Команды', d: 'Игровые команды с описанием. Нажмите на команду, чтобы скопировать её.' },
     { Icon: Gift, t: 'Промокоды', d: 'Действующие коды сверху, закончившиеся в архиве. У каждого видно, до какого числа он работает.' },
+    { Icon: BookOpen, t: 'База знаний', d: 'Личные заметки, инструкции, маршруты и подсказки с поиском, тегами и закреплением.' },
   ];
   const levels = [...LEVELS].reverse();
 
@@ -53,7 +58,7 @@ export default function Landing() {
       {!user && remote && <p className="note">Читать можно без регистрации. Аккаунт нужен, только чтобы предлагать правки и получать уровни.</p>}
     </section>
 
-    <QuickAccess />
+    {homeLayout.quick && <QuickAccess />}
 
     <div className="stats">
       <div className="stat"><b>{servers.length}</b><span className="note">{servers.length === 1 ? 'сервер' : 'серверов'} в справочнике</span></div>
@@ -61,26 +66,26 @@ export default function Landing() {
       <div className="stat"><b>100%</b><span className="note">правок проходят проверку</span></div>
     </div>
 
-    <section className="sec">
+    {homeLayout.features && <section className="sec">
       <h2>Что здесь есть</h2>
       <div className="grid3">
-        {features.map(({ Icon, t, d }) => <Link key={t} href="/servers" className="card">
+        {features.map(({ Icon, t, d }) => <Link key={t} href={t === 'База знаний' ? '/knowledge' : '/servers'} className="card">
           <div className="tico" style={{ ['--h' as any]: 172 }}><Icon size={24} /></div>
           <h3>{t}</h3><p>{d}</p>
         </Link>)}
       </div>
-    </section>
+    </section>}
 
-    <section className="sec">
+    {homeLayout.steps && <section className="sec">
       <h2>Как это работает</h2>
       <div className="steps">
         <div className="step"><i>1</i><div><h3>Выберите сервер</h3><p className="note" style={{ marginTop: 2 }}>У каждого сервера свои правила, команды и промокоды.</p></div></div>
         <div className="step"><i>2</i><div><h3>Читайте и копируйте</h3><p className="note" style={{ marginTop: 2 }}>Ищите нужное, копируйте команды и промокоды одним нажатием.</p></div></div>
         <div className="step"><i>3</i><div><h3>Предлагайте правки</h3><p className="note" style={{ marginTop: 2 }}>Нашли ошибку или знаете новый промокод? Зарегистрируйтесь и отправьте правку: модератор её проверит и опубликует.</p></div></div>
       </div>
-    </section>
+    </section>}
 
-    <section className="sec">
+    {homeLayout.roles && <section className="sec">
       <h2>Роли и уровни</h2>
       <div className="grid2">
         <div className="card">
@@ -95,17 +100,18 @@ export default function Landing() {
           <p style={{ marginTop: 6 }}><b>Владелец</b>: полный доступ, назначает роли и серверы.</p>
         </div>
       </div>
-    </section>
+    </section>}
 
-    <section className="sec">
+    {homeLayout.faq && <section className="sec">
       <h2>Частые вопросы</h2>
       <details className="card"><summary>Нужна ли регистрация, чтобы читать?</summary><p className="note">Нет. Правила, команды и промокоды открыты всем. Аккаунт нужен только для правок.</p></details>
       <details className="card"><summary>Что будет за спам и мусорные правки?</summary><p className="note">Блокировка на время, которое назначит модератор. За серьёзные нарушения возможна бессрочная блокировка с одной апелляцией. Если после разбана нарушение повторится, аккаунт удаляется полностью.</p></details>
       <details className="card"><summary>Это официальный сайт игры?</summary><p className="note">Нет. Это неофициальный фан-проект, он не связан с разработчиками и издателями игр.</p></details>
-    </section>
+    </section>}
 
     <section className="sec">
-      <div className="card"><HomePref /></div>
+      <HomePersonalize value={homeLayout} onChange={updateHomeLayout} />
+      <div className="card" style={{ marginTop: 12 }}><HomePref /></div>
     </section>
   </div>;
 }

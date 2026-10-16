@@ -39,12 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-/my-app/
-
-# Local secrets and generated files
-.env
-.env.*
-!.env.example
-node_modules/
-.next/
