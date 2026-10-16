@@ -41,4 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 /my-app/
-/mysite/
+
+# Local secrets and generated files
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
