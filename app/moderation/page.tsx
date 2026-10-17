@@ -24,10 +24,13 @@ export default function Moderation() {
   const load = useCallback(async () => {
     if (!supabase) return;
     const a = await supabase.from('suggestions').select('*').eq('status', 'pending').order('created_at');
-    const b = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(300);
+    // Helpers receive only the safe directory fields; staff may load moderation-only profile data.
+    const b = isStaff
+      ? await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(300)
+      : await supabase.from('helper_profiles').select('*').order('created_at', { ascending: false }).limit(300);
     const c = await supabase.from('staff_reports').select('*').eq('resolved', false).order('created_at');
     setSugs((a.data ?? []) as Sug[]); setProfs((b.data ?? []) as Profile[]); setReps((c.data ?? []) as Rep[]);
-  }, []);
+  }, [isStaff]);
   useEffect(() => { if (isHelper) load(); }, [isHelper, load]);
 
   if (!ready) return <Skeleton />;

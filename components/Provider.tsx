@@ -9,12 +9,14 @@ import { setFavsUser } from '../lib/favs';
 
 type Status = 'idle' | 'saving' | 'saved' | 'error';
 export type Profile = { id: string; username: string; public_id?: number; home_pref?: 'welcome' | 'servers' | 'last'; bio?: string | null; avatar_hue?: number; avatar_emoji?: string | null; username_changed_at?: string | null; role: 'user' | 'helper' | 'moderator' | 'admin'; banned_until: string | null; ban_permanent: boolean; ban_reason: string | null; appeal_deadline: string | null; appeal_status: 'none' | 'pending' | 'approved' | 'rejected'; appeal_text: string | null; second_chance: boolean; created_at: string };
-export type ServerInfo = { slug: string; name: string };
+export type ServerInfo = { slug: string; name: string; project_slug?: string | null };
+export type ProjectInfo = { slug: string; name: string; description?: string | null };
 type Ctx = {
   profile: Profile | null; authReady: boolean; isHelper: boolean; isStaff: boolean; isAdmin: boolean; banned: boolean; refreshProfile: () => Promise<void>;
   data: Data; ready: boolean; notFound: boolean; edit: boolean; canEdit: boolean; user: User | null; remote: boolean;
   status: Status; toast: string; theme: 'dark' | 'light';
-  servers: ServerInfo[]; slug: string | null; serverName: string;
+  servers: ServerInfo[]; projects: ProjectInfo[]; slug: string | null; serverName: string;
+  addProject: (name: string) => Promise<string | null>; addServer: (name: string, projectSlug?: string, from?: string, sections?: { id: string; title: string; description: string; type: 'rules' | 'commands' | 'promo' | 'custom' }[]) => Promise<string | null>;
   setEdit: (v: boolean) => void;
   toggleTheme: () => void;
   update: (fn: (d: Data) => void) => void;
@@ -22,14 +24,13 @@ type Ctx = {
   say: (m: string) => void;
   copy: (v: string) => Promise<boolean>;
   signOut: () => Promise<void>;
-  addServer: (name: string, from?: string) => Promise<string | null>;
   renameServer: (slug: string, name: string) => Promise<void>;
   deleteServer: (slug: string) => Promise<void>;
 };
 const C = createContext<Ctx>(null as unknown as Ctx);
 export const useApp = () => useContext(C);
 const valid = (s: any): s is Data => !!(s && s.rules && s.commands && s.promos);
-const empty = (): Data => ({ rules: [], commands: [], promos: [] });
+const empty = (): Data => ({ rules: [], commands: [], promos: [], sections: [], customSections: [] });
 
 const TR: Record<string, string> = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya' };
 const slugify = (s: string) => s.toLowerCase().split('').map(c => TR[c] ?? c).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'server';
@@ -40,6 +41,7 @@ export default function Provider({ children }: { children: ReactNode }) {
 
   const [data, setData] = useState<Data>(empty);
   const [servers, setServers] = useState<ServerInfo[]>([]);
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [srvReady, setSrvReady] = useState(false);
   const [ready, setReady] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -69,9 +71,10 @@ export default function Provider({ children }: { children: ReactNode }) {
   const say = useCallback((m: string) => { setToast(m); setTimeout(() => setToast(''), 2200); }, []);
 
   const loadServers = useCallback(async () => {
-    if (!supabase) { setServers([{ slug: 'local', name: SITE.name }]); setSrvReady(true); return; }
-    const { data: rows, error } = await supabase.from('servers').select('slug,name').order('position').order('created_at');
+    if (!supabase) { setProjects([{slug:'local-project',name:SITE.name}]); setServers([{ slug: 'local', name: SITE.name, project_slug:'local-project' }]); setSrvReady(true); return; }
+    const [{ data: rows, error }, { data: projectRows, error: projectError }] = await Promise.all([supabase.from('servers').select('slug,name,project_slug').order('position').order('created_at'), supabase.from('projects').select('slug,name,description').order('position').order('created_at')]);
     if (error) say('Не удалось загрузить список серверов'); else setServers(rows ?? []);
+    if (projectError) say('Не удалось загрузить список проектов'); else setProjects(projectRows ?? []);
     setSrvReady(true);
   }, [say]);
 
@@ -134,16 +137,22 @@ export default function Provider({ children }: { children: ReactNode }) {
   };
   const update = (fn: (d: Data) => void) => { const d = structuredClone(data); fn(d); replace(d); };
 
-  const addServer = async (name: string, from?: string) => {
+  const addProject = async (name: string) => {
+    if (!supabase) { say('Для совместных проектов нужна база Supabase'); return null; }
+    const base = slugify(name); let s = base, n = 1; while (projects.some(x => x.slug === s)) s = base + '-' + (++n);
+    const { error } = await supabase.from('projects').insert({slug:s,name,position:projects.length});
+    if (error) { say('Ошибка: ' + error.message); return null; } await loadServers(); say('Проект создан'); return s;
+  };
+  const addServer = async (name: string, projectSlug?: string, from?: string, sections: { id: string; title: string; description: string; type: 'rules' | 'commands' | 'promo' | 'custom' }[] = []) => {
     if (!supabase) { say('Для нескольких серверов нужна база Supabase'); return null; }
     const base = slugify(name); let s = base, n = 1;
     while (servers.some(x => x.slug === s)) s = base + '-' + (++n);
-    let d: Data = seed();
+    let d: Data = { ...empty(), sections, customSections: sections.filter(x => x.type === 'custom').map(x => ({ id: x.id, title: x.title, description: x.description, folders: [] })) };
     if (from) {
       const { data: row } = await supabase.from('servers').select('data').eq('slug', from).maybeSingle();
       if (valid(row?.data)) d = row!.data as Data;
     }
-    const { error } = await supabase.from('servers').insert({ slug: s, name, data: d, position: servers.length });
+    const { error } = await supabase.from('servers').insert({ slug: s, name, data: d, project_slug: projectSlug ?? projects[0]?.slug ?? null, position: servers.length });
     if (error) { say('Ошибка: ' + error.message); return null; }
     await loadServers(); say('Сервер добавлен'); return s;
   };
@@ -175,7 +184,7 @@ export default function Provider({ children }: { children: ReactNode }) {
   const signOut = async () => { await supabase?.auth.signOut(); setEdit(false); say('Вы вышли'); };
   const serverName = servers.find(s => s.slug === slug)?.name ?? '';
 
-  return <C.Provider value={{ profile, authReady, isHelper, isStaff, isAdmin, banned, refreshProfile, data, ready, notFound, edit, canEdit, user, remote: !!supabase, status, toast, theme, servers, slug, serverName, setEdit, toggleTheme, update, replace, say, copy, signOut, addServer, renameServer, deleteServer }}>
+  return <C.Provider value={{ profile, authReady, isHelper, isStaff, isAdmin, banned, refreshProfile, data, ready, notFound, edit, canEdit, user, remote: !!supabase, status, toast, theme, servers, projects, slug, serverName, addProject, setEdit, toggleTheme, update, replace, say, copy, signOut, addServer, renameServer, deleteServer }}>
     {children}
     <div className={'toast' + (toast ? ' show' : '')}>{toast}</div>
   </C.Provider>;

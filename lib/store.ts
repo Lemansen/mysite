@@ -1,7 +1,9 @@
-export type Item = { id: string; t: string; b: string; name?: string; syntax?: string; example?: string; purpose?: string };
+export type Item = { id: string; t: string; b: string; name?: string; syntax?: string; example?: string; purpose?: string; kind?: 'text' | 'list' | 'code' | 'link' | 'image' | 'table' | 'notice'; language?: string; href?: string; rows?: string[][]; accent?: string };
 export type Folder = { id: string; name: string; icon: string; note: string; items: Item[] };
 export type Promo = { id: string; code: string; reward: string; added: string; until: string };
-export type Data = { rules: Folder[]; commands: Folder[]; promos: Promo[] };
+export type CustomSection = { id: string; title: string; description: string; folders: Folder[] };
+export type ServerSection = { id: string; title: string; description: string; type: 'rules' | 'commands' | 'promo' | 'custom' };
+export type Data = { rules: Folder[]; commands: Folder[]; promos: Promo[]; sections?: ServerSection[]; customSections?: CustomSection[] };
 
 export const KEY = 'br_site_v2';
 export const uid = () => Math.random().toString(36).slice(2, 9);
